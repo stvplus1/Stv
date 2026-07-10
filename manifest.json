@@ -1,0 +1,21 @@
+{
+  "name": "STv+ Movies",
+  "short_name": "STv+ Movies",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#050505",
+  "theme_color": "#050505",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://via.placeholder.com/192x192.png?text=STv+",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://via.placeholder.com/512x512.png?text=STv+",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
