@@ -3,265 +3,305 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>STv+ Premium Experience</title>
-    <script src="https://ssl.p.jwpcdn.com/player/v/8.21.0/jwplayer.js"></script>
+    <title>STv+ Movies</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#050505">
+    <link rel="apple-touch-icon" href="https://via.placeholder.com/192x192.png?text=STv+">
+    
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/artplayer/dist/artplayer.js"></script>
+    
     <style>
-        :root { 
-            --accent: #ff3333; 
-            --bg: #080808; 
-            --glass: rgba(10, 10, 10, 0.8); 
-            --card-bg: rgba(255, 255, 255, 0.05);
+        :root { --red: #e50914; --bg: #050505; --card: #121212; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, sans-serif; }
+        body { background: var(--bg); color: #eee; overflow-x: hidden; padding-top: 130px; }
+
+        .fixed-top { position: fixed; top: 0; width: 100%; background: rgba(5, 5, 5, 0.95); backdrop-filter: blur(10px); z-index: 1000; border-bottom: 1px solid #222; }
+        header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; }
+        .logo { font-size: 24px; font-weight: 800; color: white; }
+        .logo span { color: var(--red); }
+        .search-box { background: #1a1a1a; border: 1px solid #333; border-radius: 8px; padding: 6px 12px; display: flex; align-items: center; width: 180px; }
+        .search-box input { background: none; border: none; color: white; outline: none; font-size: 13px; width: 100%; margin-right: 8px; }
+        .categories-nav { display: flex; overflow-x: auto; padding: 10px 15px 15px; gap: 10px; scrollbar-width: none; }
+        .categories-nav::-webkit-scrollbar { display: none; }
+        .cat-item { background: #1a1a1a; color: #bbb; padding: 6px 18px; border-radius: 20px; font-size: 13px; cursor: pointer; white-space: nowrap; transition: 0.3s; border: 1px solid #333; text-transform: capitalize; }
+        .cat-item.active { background: var(--red); color: white; border-color: var(--red); }
+        .movie-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; padding: 15px; }
+        .movie-card { background: var(--card); border-radius: 12px; overflow: hidden; border: 1px solid #222; transition: 0.3s; position: relative; cursor: pointer; }
+        .movie-card img { width: 100%; aspect-ratio: 2/3; object-fit: cover; display: block; }
+        .movie-card .info { padding: 8px; font-size: 12px; text-align: center; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .loading { text-align: center; padding: 50px; grid-column: 1 / -1; color: #888; }
+        
+        /* شێوازێ پەنجەرەیا پلەیەرێ */
+        .player-modal { 
+            display: none; 
+            position: fixed; 
+            top: 0; left: 0; 
+            width: 100vw; 
+            height: 100vh; 
+            background: #000; 
+            z-index: 999999; 
+            justify-content: center; 
+            align-items: center; 
         }
-
-        body { margin: 0; background: var(--bg); color: #efefef; font-family: sans-serif; overflow: hidden; touch-action: manipulation; }
-        .player-wrapper { position: relative; width: 100vw; height: 100vh; overflow: hidden; background: #000; }
-
-        .side-menu {
-            position: absolute; top: 0; right: -320px; width: 320px; height: 100%;
-            background: var(--glass); 
-            backdrop-filter: blur(25px); 
-            z-index: 2000;
-            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-            border-left: 1px solid rgba(255,255,255,0.1); 
-            display: flex; flex-direction: column;
+        
+        /* دوگمەیا داخستنێ */
+        .close-player { 
+            position: absolute; 
+            top: 20px; 
+            right: 30px; 
+            color: white; 
+            font-size: 24px; 
+            cursor: pointer; 
+            z-index: 2001; 
+            background: rgba(0,0,0,0.5); 
+            width: 45px; 
+            height: 45px; 
+            border-radius: 50%; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            transition: 0.3s; 
         }
-        .side-menu.active { right: 0; }
+        .close-player:hover { background: var(--red); }
+        
+        /* شوینێ پلەیەرێ ArtPlayer */
+        #artplayer-app { width: 100%; height: 100%; direction: ltr; }
 
-        .menu-header { padding: 30px 15px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .menu-header h2 { margin: 0; font-size: 20px; color: var(--accent); letter-spacing: 3px; font-weight: 900; }
-
-        .groups-container { display: flex; gap: 10px; overflow-x: auto; padding: 15px; scrollbar-width: none; }
-        .groups-container::-webkit-scrollbar { display: none; }
-        .group-item { padding: 8px 18px; background: rgba(255,255,255,0.1); border-radius: 20px; font-size: 13px; cursor: pointer; white-space: nowrap; transition: 0.3s; border: 1px solid rgba(255,255,255,0.05); }
-        .group-item.active { background: var(--accent); border-color: var(--accent); box-shadow: 0 4px 15px rgba(255, 51, 51, 0.4); }
-
-        .channel-list { flex: 1; overflow-y: auto; padding: 15px; }
-        .channel-item { display: flex; align-items: center; padding: 12px; margin-bottom: 10px; border-radius: 12px; cursor: pointer; transition: all 0.25s; background: var(--card-bg); border: 1px solid transparent; }
-        .channel-item.focused { background: rgba(255, 51, 51, 0.25) !important; border: 1px solid var(--accent); transform: scale(1.02); }
-
-        .channel-logo { width: 55px; height: 40px; background: rgba(0,0,0,0.5); border-radius: 8px; margin-left: 15px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-        .channel-logo img { width: 100%; height: 100%; object-fit: contain; }
-        .channel-name { font-size: 14px; font-weight: 600; flex: 1; text-align: right; }
-        .ch-id { color: var(--accent); margin-left: 8px; font-weight: bold; font-size: 12px; }
-
-        .overlay-ui { position: absolute; bottom: 0; right: 0; width: 100%; padding: 50px 40px; background: linear-gradient(to top, rgba(0,0,0,1), transparent); z-index: 1000; pointer-events: none; opacity: 0; transition: 0.6s; display: flex; align-items: flex-end; }
-        .overlay-ui.visible { opacity: 1; }
-        .ch-display { display: flex; align-items: center; gap: 20px; flex-direction: row-reverse; }
-        .ch-display-logo { width: 90px; height: 65px; background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); border-radius: 12px; padding: 8px; border: 1px solid rgba(255, 255, 255, 0.2); }
-        .ch-display-logo img { width: 100%; height: 100%; object-fit: contain; }
-        .ch-display-info { text-align: right; }
-        .ch-display-info h1 { margin: 0; font-size: 28px; font-weight: 800; color: #fff; }
-        .live-tag { display: inline-flex; align-items: center; gap: 6px; background: var(--accent); padding: 3px 10px; border-radius: 5px; font-size: 11px; font-weight: bold; margin-top: 5px; }
-
-        .num-indicator { position: absolute; top: 40px; left: 40px; background: var(--accent); padding: 15px 35px; border-radius: 15px; font-size: 40px; font-weight: 900; z-index: 3000; display: none; box-shadow: 0 0 30px rgba(255,0,0,0.5); }
-
-        #jwplayer, #iframePlayer { width: 100% !important; height: 100% !important; border: none; }
-        #iframePlayer { display: none; position: absolute; top: 0; left: 0; z-index: 1; }
+        @media (min-width: 768px) { .movie-grid { grid-template-columns: repeat(6, 1fr); } }
     </style>
 </head>
 <body>
 
-<div class="num-indicator" id="numBox"></div>
-
-<div class="player-wrapper" id="mainWrapper">
-    <div style="position:absolute; width:100%; height:100%; z-index:5;" id="touchLayer"></div>
-
-    <div class="side-menu" id="sideMenu">
-        <div class="menu-header"><h2>🅢𝐓✓+ PREMIUM</h2></div>
-        <div class="groups-container" id="groupsBar"></div>
-        <div class="channel-list" id="channelList"></div>
-    </div>
-
-    <div class="overlay-ui" id="overlayUI">
-        <div class="ch-display">
-            <div class="ch-display-logo" id="uiLogo"><img src="" alt=""></div>
-            <div class="ch-display-info">
-                <h1 id="uiName">بستلبا کەنالی...</h1>
-                <div class="live-tag"><i class="fas fa-circle" style="font-size: 8px;"></i> ڕاستەوخۆ</div>
+    <div class="fixed-top">
+        <header>
+            <div class="logo">STv+<span>MOVIES</span></div>
+            <div class="search-box">
+                <i class="fas fa-search" style="color: #666;"></i>
+                <input type="text" id="movieSearch" placeholder="لێگەریان...">
             </div>
+        </header>
+
+        <div class="categories-nav" id="categoryList">
+            <span class="cat-item active" data-filter="all">هەمی</span>
         </div>
     </div>
-    
-    <div id="jwplayer"></div>
-    <iframe id="iframePlayer" allowfullscreen></iframe>
-</div>
 
-<script>
-    jwplayer.key = 'XSuP4qMl+9tK17QNb+4+th2Pm9AWgMO/cYH8CI0HGGr7bdjo';
-    
-    const m3uContent = `
-#EXTINF:-1 tvg-logo="https://files.cdn-files-a.com/uploads/278563/800_68aeea3cabe7a.png" group-title="Kurdi", Quran Tv
-https://raw.githubusercontent.com/stvplus1/KURDISH/refs/heads/main/Quran.m3u8
-#EXTINF:-1 tvg-logo="https://upload.wikimedia.org/wikipedia/en/d/d0/MBC_Action_logo.png" group-title="Movies", MBC Action HD
-https://ev-tcn-dxb-cdn.aws.playco.com/live/eds/MBC_Action_HD/DASH/MBC_Action_HD.mpd
-#EXTINF:-1 tvg-logo="https://files.cdn-files-a.com/uploads/278563/800_6950fef58351e.png" group-title="Sport", ST✓ SPORT
-https://raw.githubusercontent.com/stvplus1/LOCAL/refs/heads/main/beinKurd0.m3u8
-#EXTINF:-1 tvg-logo="https://static.telewebion.com/channels/logos/sport1.png" group-title="Sport", Varzesh 1
-https://telewebion.ir/embed/live/sport1
-#EXTINF:-1 tvg-logo="https://static.telewebion.com/channels/logos/sport2.png" group-title="Sport", Varzesh 2
-https://telewebion.ir/embed/live/sport2
-#EXTINF:-1 tvg-logo="https://static.telewebion.com/channels/logos/sport3.png" group-title="Sport", Varzesh 3
-https://telewebion.ir/embed/live/sport3
-#EXTINF:-1 tvg-logo="https://files.cdn-files-a.com/uploads/278563/800_6950fef58351e.png" group-title="Kurdi", ST✓ One
-https://raw.githubusercontent.com/stvplus1/LOCAL/refs/heads/main/StvMovies.m3u8
-#EXTINF:-1 tvg-logo="https://www.appcreator24.com/srv/imgs/cards/o1641719_6763373.png" group-title="Kurdi", RUDAW HD
-https://raw.githubusercontent.com/stvplus1/KURDISH/refs/heads/main/RudawD.m3u8`;
+    <div class="movie-grid" id="movieList">
+        <div class="loading"><i class="fas fa-spinner fa-spin"></i> دئینیت...</div>
+    </div>
 
-    let allChannels = [], filteredChannels = [], groups = ["هەمی"];
-    let currentGroup = "هەمی", isMenuOpen = false, uiTimer, focusedIndex = 0;
-    let lastTap = 0, numInput = "", numTimer;
+    <div class="player-modal" id="playerModal">
+        <div class="close-player" id="closePlayer"><i class="fas fa-times"></i></div>
+        <div id="artplayer-app"></div>
+    </div>
 
-    function init() {
-        const lines = m3uContent.split('\n');
-        let current = {};
-        let chCount = 1;
-        lines.forEach(line => {
-            if (line.startsWith('#EXTINF:')) {
-                current.originalName = line.split(',')[1]?.trim() || "Bê Nav";
-                current.id = chCount++;
-                current.logo = line.match(/tvg-logo="([^"]+)"/)?.[1] || "";
-                current.group = line.match(/group-title="([^"]+)"/)?.[1]?.trim() || "Yên دی";
-                if (!groups.includes(current.group)) groups.push(current.group);
-            } else if (line.startsWith('http')) {
-                current.url = line.trim();
-                allChannels.push(current);
-                current = {};
+    <script>
+        $(document).ready(function() {
+            const jsonUrl = "https://raw.githubusercontent.com/stvplus1/Hodber/refs/heads/main/m2.json"; 
+            let allMovies = []; 
+            let art = null; 
+
+            function openFullscreen() {
+                let elem = document.documentElement;
+                if (elem.requestFullscreen) {
+                    elem.requestFullscreen();
+                } else if (elem.webkitRequestFullscreen) { 
+                    elem.webkitRequestFullscreen();
+                } else if (elem.msRequestFullscreen) { 
+                    elem.msRequestFullscreen();
+                }
             }
-        });
-        renderGroups();
-        filterByGroup("هەمی");
-        if (allChannels.length > 0) playChannel(allChannels[0]);
-    }
 
-    function renderGroups() {
-        const bar = document.getElementById('groupsBar');
-        bar.innerHTML = groups.map(g => `<div class="group-item ${g===currentGroup?'active':''}" onclick="filterByGroup('${g}'); event.stopPropagation();">${g}</div>`).join('');
-    }
+            function closeFullscreen() {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.webkitExitFullscreen) { 
+                    document.webkitExitFullscreen();
+                } else if (document.msExitFullscreen) { 
+                    document.msExitFullscreen();
+                }
+            }
 
-    function filterByGroup(name) {
-        currentGroup = name;
-        renderGroups();
-        filteredChannels = name === "هەمی" ? allChannels : allChannels.filter(c => c.group === name);
-        focusedIndex = 0;
-        renderChannels();
-    }
-
-    function renderChannels() {
-        const list = document.getElementById('channelList');
-        list.innerHTML = filteredChannels.map((ch, i) => `
-            <div class="channel-item ${i === focusedIndex ? 'focused' : ''}" onclick="loadByIndex(${i}, true); event.stopPropagation();">
-                <div class="channel-name">${ch.originalName} <span class="ch-id">${ch.id}</span></div>
-                <div class="channel-logo"><img src="${ch.logo}" onerror="this.src='https://via.placeholder.com/50x38?text=TV'"></div>
-            </div>`).join('');
-        if(isMenuOpen) updateFocus();
-    }
-
-    function loadByIndex(i, close = false) {
-        const ch = filteredChannels[i];
-        if(!ch) return;
-        playChannel(ch);
-        focusedIndex = i;
-        if (close) toggleMenu(false);
-    }
-
-    function playChannel(ch) {
-        const jwContainer = document.getElementById('jwplayer');
-        const iframePlayer = document.getElementById('iframePlayer');
-
-        // پشکنیینا ئەگەر لینکێ Telewebion بیت
-        if (ch.url.includes("telewebion.ir")) {
-            jwplayer("jwplayer").stop();
-            jwContainer.style.display = "none";
-            iframePlayer.style.display = "block";
-            iframePlayer.src = ch.url;
-        } else {
-            iframePlayer.style.display = "none";
-            iframePlayer.src = "";
-            jwContainer.style.display = "block";
-            
-            let setupConfig = {
-                file: ch.url,
-                autostart: true,
-                width: "100%",
-                height: "100%",
-                stretching: "exactfit"
-            };
-
-            if (ch.originalName.includes("MBC Action")) {
-                setupConfig.type = "dash";
-                setupConfig.drm = {
-                    clearkey: {
-                        keyId: "d889ec7cb5cd8acb44f702726a56ae21",
-                        key: "37be04cfb92f19ecd6074b976c1f3c54"
+            fetch(jsonUrl)
+                .then(response => response.json())
+                .then(data => {
+                    if(data && data.items) {
+                        processJSON(data.items);
+                    } else {
+                        $('#movieList').html('<div class="loading">داتا د فایلێ دا نەهاتە دیتن.</div>');
                     }
-                };
+                })
+                .catch(error => {
+                    console.error("Error fetching JSON:", error);
+                    $('#movieList').html('<div class="loading">کێشە دئینانا فایلێ JSON دا هەیە.</div>');
+                });
+
+            function processJSON(items) {
+                let groups = new Set();
+                allMovies = []; 
+
+                items.forEach((item, index) => {
+                    let movieGroups = (item.keys && item.keys.length > 0) ? item.keys : ['others'];
+                    movieGroups.forEach(g => { if(g) groups.add(g.toLowerCase()); });
+
+                    allMovies.push({
+                        id: item.id || index,
+                        title: item.title || 'Unknown',
+                        poster: item.poster || 'https://via.placeholder.com/200x300?text=No+Image',
+                        url: item.url || '',
+                        group: movieGroups.map(g => g.toLowerCase()).join(' '),
+                        subtitles: item.subtitles || [] 
+                    });
+                });
+                renderData(allMovies, Array.from(groups).sort());
             }
-            jwplayer("jwplayer").setup(setupConfig);
-        }
-        
-        document.getElementById('uiName').innerText = ch.originalName;
-        document.getElementById('uiLogo').querySelector('img').src = ch.logo;
-        showUI();
-    }
 
-    function toggleMenu(force) {
-        isMenuOpen = force !== undefined ? force : !isMenuOpen;
-        document.getElementById('sideMenu').classList.toggle('active', isMenuOpen);
-        if(isMenuOpen) renderChannels();
-    }
+            function renderData(movies, groups) {
+                let catHtml = '<span class="cat-item active" data-filter="all">هەمی</span>';
+                groups.forEach(group => {
+                    catHtml += `<span class="cat-item" data-filter="${group}">${group}</span>`;
+                });
+                $('#categoryList').html(catHtml);
 
-    function showUI() {
-        const ui = document.getElementById('overlayUI');
-        ui.classList.add('visible');
-        clearTimeout(uiTimer);
-        uiTimer = setTimeout(() => ui.classList.remove('visible'), 4000);
-    }
-
-    function updateFocus() {
-        const items = document.querySelectorAll('.channel-item');
-        if (items[focusedIndex]) items[focusedIndex].scrollIntoView({ block: 'center', behavior: 'smooth' });
-    }
-
-    document.addEventListener('keydown', function(e) {
-        if (/^\d$/.test(e.key)) {
-            clearTimeout(numTimer);
-            numInput += e.key;
-            const box = document.getElementById('numBox');
-            box.innerText = numInput; box.style.display = "block";
-            numTimer = setTimeout(() => { 
-                const ch = allChannels.find(c => c.id == parseInt(numInput));
-                if(ch) playChannel(ch);
-                numInput = ""; box.style.display = "none"; 
-            }, 1200);
-            return;
-        }
-
-        if (isMenuOpen) {
-            if (e.keyCode === 38) { focusedIndex = (focusedIndex - 1 + filteredChannels.length) % filteredChannels.length; renderChannels(); }
-            else if (e.keyCode === 40) { focusedIndex = (focusedIndex + 1 + filteredChannels.length) % filteredChannels.length; renderChannels(); }
-            else if (e.keyCode === 13) { loadByIndex(focusedIndex, true); }
-            else if (e.keyCode === 27 || e.keyCode === 8) { toggleMenu(false); }
-        } else {
-            if (e.keyCode === 13) toggleMenu(true);
-            else if (e.keyCode === 38) { focusedIndex = (focusedIndex - 1 + filteredChannels.length) % filteredChannels.length; loadByIndex(focusedIndex); }
-            else if (e.keyCode === 40) { focusedIndex = (focusedIndex + 1 + filteredChannels.length) % filteredChannels.length; loadByIndex(focusedIndex); }
-        }
-    });
-
-    document.getElementById('touchLayer').addEventListener('click', function () {
-        let now = new Date().getTime();
-        if (now - lastTap < 300) {
-            if (document.getElementById('jwplayer').style.display !== "none") {
-                jwplayer().setFullscreen(!jwplayer().getFullscreen());
+                let movieHtml = '';
+                movies.forEach((movie, index) => {
+                    movieHtml += `
+                    <div class="movie-card" data-genre="${movie.group}" title="${movie.title}" onclick="openPlayer(${index})">
+                        <img src="${movie.poster}" onerror="this.src='https://via.placeholder.com/200x300?text=No+Image'">
+                        <div class="info">${movie.title}</div>
+                    </div>`;
+                });
+                $('#movieList').html(movieHtml);
             }
-        } else {
-            toggleMenu();
-        }
-        lastTap = now;
-    });
 
-    init();
-</script>
+            $('#movieSearch').on('input', function() {
+                var value = $(this).val().toLowerCase();
+                $('.movie-card').each(function() {
+                    var title = $(this).attr('title').toLowerCase();
+                    $(this).toggle(title.indexOf(value) > -1);
+                });
+            });
+
+            $(document).on('click', '.cat-item', function() {
+                $('.cat-item').removeClass('active');
+                $(this).addClass('active');
+                var filter = $(this).attr('data-filter');
+
+                if (filter === 'all') {
+                    $('.movie-card').fadeIn(300);
+                } else {
+                    $('.movie-card').hide();
+                    $('.movie-card').filter(function() {
+                        var genres = $(this).attr('data-genre').split(' ');
+                        return genres.includes(filter);
+                    }).fadeIn(300);
+                }
+            });
+
+            $('#closePlayer').on('click', function() {
+                closeFullscreen();
+                
+                try { if(screen.orientation && screen.orientation.unlock) screen.orientation.unlock(); } catch (e) {}
+
+                if(art) {
+                    art.pause();
+                    art.destroy(true);
+                    art = null;
+                }
+                $('#playerModal').fadeOut();
+            });
+
+            window.openPlayer = function(index) {
+                const movie = allMovies[index];
+                
+                openFullscreen();
+
+                try { 
+                    if(screen.orientation && screen.orientation.lock) {
+                        screen.orientation.lock('landscape').catch(e => console.log(e));
+                    }
+                } catch (e) {}
+
+                if(art) {
+                    art.destroy(true);
+                }
+
+                let subList = [];
+                let defaultSubUrl = '';
+                
+                if (movie.subtitles && movie.subtitles.length > 0) {
+                    movie.subtitles.forEach((sub, idx) => {
+                        subList.push({
+                            html: sub.language,
+                            url: sub.url
+                        });
+                        if(idx === 0) defaultSubUrl = sub.url; 
+                    });
+                }
+
+                $('#playerModal').css('display', 'flex').hide().fadeIn();
+
+                art = new Artplayer({
+                    container: '#artplayer-app',
+                    url: movie.url,
+                    title: movie.title,
+                    poster: movie.poster,
+                    theme: '#e50914',
+                    volume: 1,
+                    autoplay: true,
+                    pip: false,
+                    setting: true,
+                    flip: true,
+                    playbackRate: true,
+                    aspectRatio: true,
+                    fullscreen: true,
+                    fullscreenWeb: true,
+                    subtitleOffset: true,
+                    miniProgressBar: true,
+                    playsInline: true,
+                    icons: {
+                        loading: '<i class="fas fa-spinner fa-spin" style="font-size: 40px;"></i>',
+                    },
+                    subtitle: {
+                        url: defaultSubUrl,
+                        type: 'srt',
+                        style: {
+                            color: '#fff',
+                            fontSize: '24px', 
+                            textShadow: '2px 2px 4px #000'
+                        },
+                        encoding: 'utf-8',
+                    },
+                    settings: [
+                        {
+                            width: 200,
+                            html: 'زمانێ تەرجومەیێ',
+                            tooltip: 'هەلبژێرە',
+                            selector: subList,
+                            onSelect: function (item) {
+                                art.subtitle.switch(item.url, {
+                                    name: item.html,
+                                });
+                                return item.html;
+                            },
+                        },
+                    ],
+                });
+            };
+        });
+    </script>
+    
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(reg => console.log('Service Worker تۆمار بوو', reg))
+                    .catch(err => console.log('خەلەتی د Service Worker دا', err));
+            });
+        }
+    </script>
 </body>
 </html>
